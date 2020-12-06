@@ -7,38 +7,68 @@ public class PlayerHUD : MonoBehaviour
 {
 
     [Header("PlayerUi")]
-    public GameObject interactionUI;
-    Image _progBar;
-    Image _interactionImg;
 
+
+    public GameObject Hud;
+    //Image _interactionImg;
+    Transform _progrBarParent;
+    Image _progBar;
+
+
+    [SerializeField] private GameObject _interactionPanel; // Main UI
+    Text _interactionText;
 
     private void Awake()
     {
-        _progBar = interactionUI.transform.GetChild(0).GetComponent<Image>();
-        _interactionImg = interactionUI.transform.GetChild(1).GetComponent<Image>();
+        Init();
     }
 
-
-    public void ActivateHUD(bool activity)
+    private void Init()
     {
-        interactionUI.gameObject.SetActive(activity);
+        //HUD/SLIDERHOLDER/SLIDER
+        _progrBarParent = Hud.transform.GetChild(0).GetComponent<Transform>();
+        _progBar = _progrBarParent.transform.GetChild(0).GetComponent<Image>();
+
+        //_interactionImg = interactionUI.transform.GetChild(1).GetComponent<Image>();
+
+        _interactionText = _interactionPanel.transform.GetChild(0).GetComponent<Text>();
+
+
+        _progrBarParent.gameObject.SetActive(false);
+        _interactionPanel.SetActive(false);
     }
 
 
-    public void OnMachineInteraction(bool value)
+
+
+    public void FlipHUD()
     {
-        _progBar.gameObject.SetActive(value);
-
+        Vector3 theScale = Hud.transform.localScale;
+        theScale.x *= -1;
+        Hud.transform.localScale = theScale;
     }
 
-    public void UpdateWorkSlider(float value)
+    public void UpdateWorkSlider(float value) => _progBar.fillAmount = value;
+
+    //In player game hud
+    public void OnMachineInteractionEnter(bool activity)
     {
-        _progBar.fillAmount = value;
+        _progrBarParent.gameObject.SetActive(activity);
     }
 
-    public void OnItemInteraction(bool value)
+
+    //in main ui
+    public void OnInteractableCollitionEnter(string info)
     {
-        _interactionImg.gameObject.SetActive(value);
+        _interactionPanel.gameObject.SetActive(true);
+        _interactionText.text = info;
     }
+
+    public void OnInteractableCollitionExit()
+    {
+        _interactionText.text = null;
+        _interactionPanel.gameObject.SetActive(false);
+    }
+
 
 }

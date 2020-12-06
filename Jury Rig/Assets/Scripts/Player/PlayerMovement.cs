@@ -45,10 +45,10 @@ public class PlayerMovement : MonoBehaviour
     float _workCounterTime = 0f;
 
     //player interaction ui
-    [Header("PlayerUi")]
-    private InteractableObject _interactable;
-    Image _progBar;
-    Image _interactionImg;
+    //[Header("PlayerUi")]
+    //private InteractableObject _interactable;
+    //Image _progBar;
+    //Image _interactionImg;
 
     //flag
     //helpful vars
@@ -58,6 +58,7 @@ public class PlayerMovement : MonoBehaviour
 
     //wall detection
     //private bool _isCloseToWall = false;
+    private PlayerHUD HUD;
 
     #endregion
 
@@ -70,10 +71,11 @@ public class PlayerMovement : MonoBehaviour
     {
         _controller = gameObject.GetComponent<CharacterController2D>();
         _animator = gameObject.transform.GetChild(0).transform.GetChild(0).GetComponent<Animator>();
+        HUD = GetComponent<PlayerHUD>();
 
-        _interactable = GetComponent<InteractableObject>();
-        _progBar = _interactable.interactionUI.transform.GetChild(0).transform.GetChild(0).GetComponent<Image>();
-        _interactionImg = _interactable.interactionUI.transform.GetChild(1).GetComponent<Image>();
+        //_interactable = GetComponent<InteractableObject>();
+        //_progBar = _interactable.interactionUI.transform.GetChild(0).transform.GetChild(0).GetComponent<Image>();
+        //_interactionImg = _interactable.interactionUI.transform.GetChild(1).GetComponent<Image>();
         //_progText = _interactable.interactionUI.transform.GetChild(0).transform.GetChild(0).GetComponent<Text>();
 
         _isJumping = false;
@@ -139,12 +141,13 @@ public class PlayerMovement : MonoBehaviour
                     _workCounterTime += +3f * +0.5f * Time.deltaTime;
 
                     //Progression UI visual
-                    _interactable.ActivateHUD(true);
+                    //_interactable.ActivateHUD(true);
+                    HUD.OnMachineInteractionEnter(true);
                     //add sfx
 
                     //bar has value 0-1
-                    if(_progBar.gameObject.activeSelf)
-                        _progBar.fillAmount = _workCounterTime / _workTime;
+                    //if(_progBar.gameObject.activeSelf)
+                    HUD.UpdateWorkSlider(_workCounterTime / _workTime);
 
                     //call some vfs/sfx to the machine here !!
                 }
@@ -183,7 +186,9 @@ public class PlayerMovement : MonoBehaviour
     {
         //Reset
         _workCounterTime = 0;
-        _interactable.ActivateHUD(false);
+
+        HUD.OnMachineInteractionEnter(false);
+
         _isRepairing = false;//UnLock the playerMovement
     }
 
@@ -203,11 +208,7 @@ public class PlayerMovement : MonoBehaviour
     }
     public void getUpdatedHUDRotation()
     {
-        GameObject staticUI = _interactable.interactionUI.transform.gameObject;
-
-        Vector3 theScale = staticUI.transform.localScale;
-        theScale.x *= -1;
-        staticUI.transform.localScale = theScale;
+        HUD.FlipHUD();
     }
 
     #endregion
@@ -274,37 +275,45 @@ public class PlayerMovement : MonoBehaviour
     #region Collitions
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if(collision.gameObject.GetComponent<Machine>())    //MACHINE
-        {
-            _isNearMachine = true;
-            _machine = collision.GetComponent<Machine>();
-        }
-
-        if(collision.gameObject.GetComponent<Item>())     //Item
-        {
-            _isNearItem = true;
-            _item = collision.GetComponent<Item>();
-
-            _interactionImg.gameObject.SetActive(true);
-        }
-
+        
         if(collision.gameObject.GetComponent<InteractableObject>()) //Activate the UI border, exclluding machines
         {
+            
+
             //if it is an interactable item activate the interactionUI
-            InteractableObject interactable = collision.gameObject.GetComponent<InteractableObject>();
-            interactable.ActivateHUD(true);
+            InteractableObject interactableObject = collision.gameObject.GetComponent<InteractableObject>();
+            interactableObject.ActivateHUD(true);
+
+            if(interactableObject.gameObject.GetComponent<Machine>())    //MACHINE
+            {
+                _isNearMachine = true;
+                _machine = interactableObject.GetComponent<Machine>();
+
+                if(_holdingItem &&!_isRepairing)
+                    HUD.OnInteractableCollitionEnter("Hold 'E' to repair...");
+                else //if he is repairing hide it 
+                    HUD.OnInteractableCollitionExit();
+
+            }
+
+            if(interactableObject.gameObject.GetComponent<Item>())     //Item
+            {
+                _isNearItem = true;
+                _item = interactableObject.GetComponent<Item>();
+
+                HUD.OnInteractableCollitionEnter("Press 'E' to pick item...");
+
+            }
+
         }
+
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if(collision.gameObject.GetComponent<InteractableObject>())
-        {
-            //if it is an interactable item activate the interactionUI
-            InteractableObject interactable = collision.gameObject.GetComponent<InteractableObject>();
-            if(!interactable.GetComponent<Machine>())
-                interactable.ActivateHUD(false);
-        }
+        //player hud
+        if(collision.gameObject.GetComponent<InteractableObject>()) // Player
+            HUD.OnInteractableCollitionExit();
 
 
         if(collision.gameObject.GetComponent<Machine>())    //MACHINE
@@ -318,7 +327,8 @@ public class PlayerMovement : MonoBehaviour
             _isNearItem = false;
             _item = null;
 
-            _interactionImg.gameObject.SetActive(false);
+            //hide item interaction ui
+            collision.gameObject.GetComponent<InteractableObject>().ActivateHUD(false);
         }
     }
 
@@ -332,6 +342,6 @@ public class PlayerMovement : MonoBehaviour
     }
 
     #endregion
- 
+
 
 }
